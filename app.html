@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GrowthMindsetClips Publisher</title>
+<link rel="icon" href="icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono&display=swap">
+<style>
+  :root { --bg:#F6F5F1; --surface:#FFFFFF; --ink:#1F1E1A; --muted:#625F55; --accent:#2F5D50; --accent-ink:#F6F5F1; --rule:#D6D3C8; --ok:#2F6B3A; --bad:#9A3B2E; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:"IBM Plex Sans","Segoe UI",system-ui,sans-serif; font-size:17px; line-height:1.55; padding-block:2.5rem 5rem; padding-inline:1.25rem; }
+  .frame { max-width:720px; margin:0 auto; display:grid; gap:1.5rem; }
+  header { display:flex; align-items:center; gap:.9rem; }
+  header img { width:48px; height:48px; border-radius:10px; }
+  header h1 { font-family:"Source Serif 4",Georgia,serif; font-size:1.6rem; margin:0; }
+  header p { margin:0; color:var(--muted); font-size:.95rem; }
+  .card { background:var(--surface); border:1px solid var(--rule); border-radius:12px; padding:1.4rem 1.5rem; display:grid; gap:1rem; }
+  .card h2 { font-family:"Source Serif 4",Georgia,serif; font-size:1.2rem; margin:0; }
+  .row { display:flex; gap:.9rem; align-items:center; flex-wrap:wrap; }
+  .who { display:flex; align-items:center; gap:.7rem; }
+  .who img { width:44px; height:44px; border-radius:50%; background:var(--rule); }
+  label { display:grid; gap:.3rem; font-size:.92rem; color:var(--muted); }
+  input[type=text], select, textarea { font:inherit; color:var(--ink); background:var(--bg); border:1px solid var(--rule); border-radius:8px; padding:.6rem .75rem; width:100%; }
+  textarea { min-height:5.5rem; resize:vertical; }
+  .check { display:flex; align-items:center; gap:.5rem; font-size:.98rem; color:var(--ink); }
+  .check input { width:19px; height:19px; }
+  button { font:inherit; font-weight:600; border:0; border-radius:10px; padding:.75rem 1.2rem; cursor:pointer; background:var(--accent); color:var(--accent-ink); }
+  button.ghost { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .status { font-family:"IBM Plex Mono",Consolas,monospace; font-size:.9rem; padding:.8rem 1rem; border-radius:8px; background:var(--bg); border:1px solid var(--rule); white-space:pre-wrap; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); }
+  .note { font-size:.9rem; color:var(--muted); }
+  .note a { color:var(--accent); }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <header>
+    <img src="icon.png" alt="">
+    <div>
+      <h1>GrowthMindsetClips Publisher</h1>
+      <p>Post a reviewed clip to your own TikTok account.</p>
+    </div>
+  </header>
+
+  <section class="card" id="connect">
+    <h2>1. Connect your TikTok account</h2>
+    <p class="note">You will be sent to TikTok to sign in and approve access. We ask for permission to read your basic profile and to post videos on your behalf. See the <a href="index.html#privacy">Privacy Policy</a>.</p>
+    <div class="row">
+      <button id="btn-connect">Continue with TikTok</button>
+      <button id="btn-logout" class="ghost" hidden>Disconnect</button>
+    </div>
+    <div class="who" id="who" hidden><img id="avatar" alt=""><div><strong id="nick"></strong><div class="note" id="username"></div></div></div>
+  </section>
+
+  <section class="card" id="compose" hidden>
+    <h2>2. Review and publish</h2>
+    <label>Clip <select id="clip"></select></label>
+    <label>Title / caption <textarea id="title" placeholder="Write the caption that will appear on TikTok"></textarea></label>
+    <label>Who can view this video <select id="privacy"></select></label>
+    <div class="row">
+      <label class="check"><input type="checkbox" id="comment"> Allow comments</label>
+      <label class="check"><input type="checkbox" id="duet"> Allow Duet</label>
+      <label class="check"><input type="checkbox" id="stitch"> Allow Stitch</label>
+    </div>
+    <div>
+      <label class="check"><input type="checkbox" id="disclose"> Disclose video content (commercial content)</label>
+      <div id="disclose-box" hidden style="padding-left:1.6rem; display:grid; gap:.3rem">
+        <label class="check"><input type="checkbox" id="brand-organic"> Your brand (promotes yourself or your own business)</label>
+        <label class="check"><input type="checkbox" id="brand-content"> Branded content (promotes another brand or a third party)</label>
+        <div class="note" id="disclose-note"></div>
+      </div>
+    </div>
+    <p class="note" id="consent">By posting, you agree to TikTok's <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noopener">Music Usage Confirmation</a>.</p>
+    <div class="row"><button id="btn-publish">Post to TikTok</button></div>
+    <div class="status" id="status" hidden></div>
+  </section>
+
+  <p class="note">Single-operator tool. <a href="index.html#terms">Terms of Service</a> &middot; <a href="index.html#privacy">Privacy Policy</a></p>
+</div>
+
+<script>
+(function () {
+  var API = "https://wok-deflected-scoured.ngrok-free.dev";
+  var CLIENT_KEY = "sbawkhwflbs66prje7";
+  var REDIRECT = API + "/callback/";
+  var SCOPES = "user.info.basic,video.upload,video.publish";
+  var $ = function (id) { return document.getElementById(id); };
+  var hdr = { "ngrok-skip-browser-warning": "1", "Content-Type": "application/json" };
+
+  function api(path, opts) {
+    opts = opts || {}; opts.headers = hdr;
+    return fetch(API + path, opts).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, json: j }; }); });
+  }
+
+  $("btn-connect").onclick = function () {
+    var state = Math.random().toString(36).slice(2);
+    location.href = "https://www.tiktok.com/v2/auth/authorize/?client_key=" + CLIENT_KEY +
+      "&scope=" + encodeURIComponent(SCOPES) + "&response_type=code" +
+      "&redirect_uri=" + encodeURIComponent(REDIRECT) + "&state=" + state;
+  };
+  $("btn-logout").onclick = function () { api("/api/logout").then(function () { location.href = "app.html"; }); };
+
+  function setStatus(text, cls) { var s = $("status"); s.hidden = false; s.textContent = text; s.className = "status " + (cls || ""); }
+
+  function loadCreator() {
+    return api("/api/me").then(function (r) {
+      if (!r.ok || !r.json.data) { return false; }
+      var d = r.json.data;
+      $("who").hidden = false; $("btn-connect").hidden = true; $("btn-logout").hidden = false;
+      $("avatar").src = d.creator_avatar_url || "icon.png"; $("nick").textContent = d.creator_nickname || d.creator_username || "";
+      $("username").textContent = "@" + (d.creator_username || "");
+      var p = $("privacy"); p.innerHTML = "";
+      var names = { PUBLIC_TO_EVERYONE: "Everyone", MUTUAL_FOLLOW_FRIENDS: "Friends", FOLLOWER_OF_CREATOR: "Followers", SELF_ONLY: "Only me" };
+      (d.privacy_level_options || []).forEach(function (o) { var op = document.createElement("option"); op.value = o; op.textContent = names[o] || o; p.appendChild(op); });
+      $("comment").disabled = !!d.comment_disabled; $("comment").checked = !d.comment_disabled;
+      $("duet").disabled = !!d.duet_disabled; $("duet").checked = !d.duet_disabled;
+      $("stitch").disabled = !!d.stitch_disabled; $("stitch").checked = !d.stitch_disabled;
+      $("compose").hidden = false;
+      return true;
+    }).catch(function () { return false; });
+  }
+
+  function loadClips() {
+    return api("/api/clips").then(function (r) {
+      var s = $("clip"); s.innerHTML = "";
+      (r.json.clips || []).forEach(function (c) { var op = document.createElement("option"); op.value = c.id; op.textContent = c.label + " (" + Math.round(c.bytes / 1048576) + " MB)"; s.appendChild(op); });
+    });
+  }
+
+  $("disclose").onchange = function () { $("disclose-box").hidden = !this.checked; updateDisclose(); };
+  $("brand-organic").onchange = updateDisclose; $("brand-content").onchange = updateDisclose;
+  $("privacy").onchange = updateDisclose;
+  function updateDisclose() {
+    var org = $("brand-organic").checked, br = $("brand-content").checked, n = $("disclose-note");
+    if (br && $("privacy").value === "SELF_ONLY") { n.textContent = "Branded content cannot be set to private."; n.className = "note bad"; return; }
+    n.className = "note";
+    n.textContent = br ? "Your video will be labeled as \"Paid partnership\"." : org ? "Your video will be labeled as \"Promotional content\"." : "";
+  }
+
+  $("btn-publish").onclick = function () {
+    var br = $("brand-content").checked, org = $("brand-organic").checked;
+    if ($("disclose").checked && !br && !org) { setStatus("Choose at least one disclosure option or turn the disclosure off.", "bad"); return; }
+    if (br && $("privacy").value === "SELF_ONLY") { setStatus("Branded content cannot be posted as private.", "bad"); return; }
+    if (!$("title").value.trim()) { setStatus("Write a title first.", "bad"); return; }
+    $("btn-publish").disabled = true; setStatus("Uploading the video and creating the post...");
+    api("/api/publish", { method: "POST", body: JSON.stringify({
+      clip: $("clip").value, title: $("title").value, privacy_level: $("privacy").value,
+      disable_comment: !$("comment").checked, disable_duet: !$("duet").checked, disable_stitch: !$("stitch").checked,
+      brand_organic: org, brand_content: br }) })
+    .then(function (r) {
+      if (!r.ok || !r.json.publish_id) { setStatus("Failed: " + JSON.stringify(r.json), "bad"); $("btn-publish").disabled = false; return; }
+      poll(r.json.publish_id, 0);
+    });
+  };
+
+  function poll(pid, n) {
+    api("/api/status?publish_id=" + encodeURIComponent(pid)).then(function (r) {
+      var st = (r.json.data && r.json.data.status) || "UNKNOWN";
+      setStatus("publish_id " + pid + "\nstatus " + st);
+      if (st === "PUBLISH_COMPLETE") { setStatus("Posted to TikTok. It may take a few minutes to appear in your profile.\npublish_id " + pid, "ok"); $("btn-publish").disabled = false; return; }
+      if (st === "FAILED") { setStatus("TikTok rejected the post: " + (r.json.data.fail_reason || "unknown"), "bad"); $("btn-publish").disabled = false; return; }
+      if (n < 60) setTimeout(function () { poll(pid, n + 1); }, 3000);
+    });
+  }
+
+  loadCreator().then(function (ok) { if (ok) loadClips(); });
+})();
+</script>
+</body>
+</html>
