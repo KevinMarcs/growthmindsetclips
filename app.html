@@ -99,7 +99,7 @@
     var state = Math.random().toString(36).slice(2);
     location.href = "https://www.tiktok.com/v2/auth/authorize/?client_key=" + CLIENT_KEY +
       "&scope=" + encodeURIComponent(SCOPES) + "&response_type=code" +
-      "&redirect_uri=" + encodeURIComponent(REDIRECT) + "&state=" + state;
+      "&redirect_uri=" + encodeURIComponent(REDIRECT) + "&state=" + state + "&disable_auto_auth=1";
   };
   $("btn-logout").onclick = function () { api("/api/logout").then(function () { location.href = "app.html"; }); };
 
